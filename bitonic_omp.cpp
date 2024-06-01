@@ -4,12 +4,14 @@
 #include <cstdlib>
 using namespace std;
 
+
 void generate_data(int* array, int start, int sample_size, int rank);
 void print(int* array, int sample_size);
-int partition(int* array, int left, int right);
-void quickSort(int* array, int left, int right);
-void bitonicSort(int* array, int low, int count, int direction);
-void bitonicMerge(int* array, int low, int count, int direction);
+int get_pivot(int* array, int left, int right);
+void quick_sort(int* array, int left, int right);
+void bitonic_sort(int* array, int low, int count, int direction);
+void bitonic_merge(int* array, int low, int count, int direction);
+bool is_valid_sort(int* qs_array, int* bs_array, int global_size);
 
 
 int main(int argc, char* argv[]) {
@@ -35,34 +37,33 @@ int main(int argc, char* argv[]) {
     }
 
     seq_start_time = omp_get_wtime();
-    quickSort(validation, 0, global_size - 1);
+    quick_sort(validation, 0, global_size - 1);
     seq_end_time = omp_get_wtime();
 
     omp_start_time = omp_get_wtime();
     #pragma omp parallel num_threads(n_threads)
     {
         #pragma omp single
-        bitonicSort(data, 0, global_size, 1);
+        bitonic_sort(data, 0, global_size, 1);
     }
     omp_end_time = omp_get_wtime();
 
-    bool is_valid = true;
-    for (int i = 0; i < global_size; i++) {
-        if (data[i] != validation[i]) {
-            is_valid = false;
-            break;
-        }
-    }
+    bool is_valid = is_valid_sort(validation, data, global_size);
 
-    printf("\nSort Valid?: %s\n", is_valid ? "True" : "False");
     printf("Sequential (Quicksort) Sort Time: %f\n", seq_end_time - seq_start_time);
     printf("OpenMP Implementation - Parallel Bitonic Sort Time using %d threads: %f seconds\n", n_threads, omp_end_time - omp_start_time);
-    printf("Speedup: %f\n\n", (seq_end_time - seq_start_time) / (omp_end_time - omp_start_time));
+    
+    printf("\nSort Valid?: %s\n", is_valid ? "True" : "False");
+
+    if (is_valid){
+        printf("Speedup: %f\n\n", (seq_end_time - seq_start_time) / (omp_end_time - omp_start_time));
+    }
 
     free(data);
     free(validation);
     return 0;
 }
+
 
 void generate_data(int* array, int start, int sample_size, int rank) {
     srand(42 + rank);
@@ -96,37 +97,37 @@ int get_pivot(int* array, int left, int right) {
 }
 
 
-void quickSort(int* array, int left, int right) {
+void quick_sort(int* array, int left, int right) {
     if (left >= right) return;
 
     int pivot = get_pivot(array, left, right);
 
-    quickSort(array, left, pivot - 1);
-    quickSort(array, pivot + 1, right);
+    quick_sort(array, left, pivot - 1);
+    quick_sort(array, pivot + 1, right);
 }
 
 
-void bitonicSort(int* array, int low, int count, int direction)
+void bitonic_sort(int* array, int low, int count, int direction)
 {
     if (count <= 1) return;
 
     int k = count / 2;
     #pragma omp task if (k > 512)
     {
-        bitonicSort(array, low, k, 1); // Sort in increasing order
+        bitonic_sort(array, low, k, 1); // Sort in increasing order
     }
 
     #pragma omp task if (k > 512)
     {
-        bitonicSort(array, low + k, k, 0); // Sort in decreasing order
+        bitonic_sort(array, low + k, k, 0); // Sort in decreasing order
     }
 
     #pragma omp taskwait
-    bitonicMerge(array, low, count, direction);
+    bitonic_merge(array, low, count, direction);
 }
 
 
-void bitonicMerge(int* array, int low, int count, int direction)
+void bitonic_merge(int* array, int low, int count, int direction)
 {
     if (count <= 1) return;
 
@@ -138,6 +139,17 @@ void bitonicMerge(int* array, int low, int count, int direction)
         }
     }
 
-    bitonicMerge(array, low, k, direction);
-    bitonicMerge(array, low + k, k, direction);
+    bitonic_merge(array, low, k, direction);
+    bitonic_merge(array, low + k, k, direction);
+}
+
+
+bool is_valid_sort(int* qs_array, int* bs_array, int global_size)
+{
+    for (int i = 0; i < global_size; i++) {
+        if (bs_array[i] != qs_array[i]) {
+            return false;
+        }
+    }
+    return true;
 }

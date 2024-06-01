@@ -6,8 +6,8 @@ using namespace std;
 
 void generate_data(int* array, int start, int sample_size);
 void print(int* array, int sample_size);
-int partition(int* array, int left, int right);
-void quickSort(int* array, int left, int right);
+int get_pivot(int* array, int left, int right);
+void quick_sort(int* array, int left, int right);
 
 
 int main(int argc, char* argv[])
@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
     generate_data(data, 0, sample_size);
 
     double start_time = omp_get_wtime();
-    quickSort(data, 0, sample_size - 1);
+    quick_sort(data, 0, sample_size - 1);
     printf("\nSequential (Quicksort) Sort Time: %f\n\n", omp_get_wtime() - start_time);
 
     return 0;
@@ -42,7 +42,7 @@ void print(int* array, int sample_size)
 }
 
 
-int partition(int* array, int left, int right)
+int get_pivot(int* array, int left, int right)
 {
     int pivot = array[right];
     int index = left - 1;
@@ -59,12 +59,12 @@ int partition(int* array, int left, int right)
 }
 
 
-void quickSort(int* array, int left, int right)
+void quick_sort(int* array, int left, int right)
 {
     if (left >= right) return;
 
-    int pivot = partition(array, left, right);
+    int pivot = get_pivot(array, left, right);
 
-    quickSort(array, left, pivot - 1);
-    quickSort(array, pivot + 1, right);
+    quick_sort(array, left, pivot - 1);
+    quick_sort(array, pivot + 1, right);
 }

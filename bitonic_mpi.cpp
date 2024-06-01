@@ -7,10 +7,12 @@ using namespace std;
 
 void generate_data(int* array, int start, int sample_size, int rank);
 void print(int* array, int sample_size);
-int partition(int *array, int left, int right);
-void quickSort(int *array, int left, int right);
-void compareLow(int* array, int sample_size, int rank, int j);
-void compareHigh(int* array, int sample_size, int rank, int j);
+int get_pivot(int* array, int left, int right);
+void quick_sort(int *array, int left, int right);
+void compare_low(int* array, int sample_size, int rank, int j);
+void compare_high(int* array, int sample_size, int rank, int j);
+bool is_valid_sort(int* qs_array, int* bs_array, int global_size);
+
 
 int main(int argc, char* argv[])
 {   
@@ -40,7 +42,7 @@ int main(int argc, char* argv[])
 
 
     // Sort local data sequentially - Quick Sort
-    quickSort(data, 0, sample_size - 1);
+    quick_sort(data, 0, sample_size - 1);
 
     // Sort using Bitonic Sort //
     int cude_dims = log2(n_processes);
@@ -48,10 +50,10 @@ int main(int argc, char* argv[])
     for (int i = 0; i < cude_dims; i++){
         for (int j = i; j >= 0; j--){
             if (((rank >> (i + 1)) % 2 == 0 && (rank >> j) % 2 == 0) || ((rank >> (i + 1)) % 2 != 0 && (rank >> j) % 2 != 0)){
-                compareLow(data, sample_size, rank, j);
+                compare_low(data, sample_size, rank, j);
             }
             else {
-                compareHigh(data, sample_size, rank, j);
+                compare_high(data, sample_size, rank, j);
             }
         }
     }
@@ -70,21 +72,19 @@ int main(int argc, char* argv[])
         }
 
         seq_start_time = MPI_Wtime();
-        quickSort(validation, 0, global_size - 1);
+        quick_sort(validation, 0, global_size - 1);
         seq_end_time = MPI_Wtime();
 
-        bool is_valid = true;
-        for (int i = 0; i < global_size; i++){
-            if (output[i] != validation[i]){
-                is_valid = false;
-                break;
-            }
-        }
+        bool is_valid = is_valid_sort(validation,  output, global_size);
+
+        printf("\nSequential (Quicksort) Sort Time: %f\n", seq_end_time - seq_start_time);
+        printf("MPI Implementation - Parallel Bitonic Sort Time using %d processers: %f\n", n_processes, mpi_end_time - mpi_start_time);
 
         printf("\nSort Valid?: %s\n", is_valid ? "True" : "False");
-        printf("Sequential (Quicksort) Sort Time: %f\n", seq_end_time - seq_start_time);
-        printf("MPI Implementation - Parallel Bitonic Sort Time using %d processers: %f\n", n_processes, mpi_end_time - mpi_start_time);
-        printf("Speedup: %f\n\n", (seq_end_time - seq_start_time) / (mpi_end_time - mpi_start_time));
+
+        if (is_valid) {
+            printf("Speedup: %f\n\n", (seq_end_time - seq_start_time) / (mpi_end_time - mpi_start_time));
+        }
     }
 
     // Free up memory
@@ -112,7 +112,8 @@ void print(int* array, int sample_size)
     printf("%d\n", array[sample_size - 1]);
 }
 
-int partition(int* array, int left, int right)
+
+int get_pivot(int* array, int left, int right)
 {
     int pivot = array[right];
     int index = left - 1;
@@ -129,17 +130,18 @@ int partition(int* array, int left, int right)
 }
 
 
-void quickSort(int* array, int left, int right)
+void quick_sort(int* array, int left, int right)
 {
     if (left >= right) return;
 
-    int pivot = partition(array, left, right);
+    int pivot = get_pivot(array, left, right);
 
-    quickSort(array, left, pivot - 1);
-    quickSort(array, pivot + 1, right);
+    quick_sort(array, left, pivot - 1);
+    quick_sort(array, pivot + 1, right);
 }
 
-void compareLow(int* array, int sample_size, int rank, int j) {
+
+void compare_low(int* array, int sample_size, int rank, int j) {
     int partner = rank ^ (1 << j);
     int *recv_buffer = (int*) malloc(sample_size * sizeof(int));
     MPI_Sendrecv(array, sample_size, MPI_INT, partner, 0, recv_buffer, sample_size, MPI_INT, partner, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -171,7 +173,8 @@ void compareLow(int* array, int sample_size, int rank, int j) {
     free(merged);
 }
 
-void compareHigh(int* array, int sample_size, int rank, int j) {
+
+void compare_high(int* array, int sample_size, int rank, int j) {
     int partner = rank ^ (1 << j);
     int *recv_buffer = (int*) malloc(sample_size * sizeof(int));
     MPI_Sendrecv(array, sample_size, MPI_INT, partner, 0, recv_buffer, sample_size, MPI_INT, partner, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -201,4 +204,15 @@ void compareHigh(int* array, int sample_size, int rank, int j) {
 
     free(recv_buffer);
     free(merged);
+}
+
+
+bool is_valid_sort(int* qs_array, int* bs_array, int global_size)
+{
+    for (int i = 0; i < global_size; i++) {
+        if (bs_array[i] != qs_array[i]) {
+            return false;
+        }
+    }
+    return true;
 }
