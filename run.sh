@@ -18,6 +18,6 @@ echo "-------------Bitonic_OMP is done------------------"
 echo
 
 echo "------------Bitonic_MPI is starting---------------"
-mpiexec -n "$2" ./bitonic_mpi "$1" |& tee -a terminal.out
+mpiexec -np "$2" ./bitonic_mpi "$1" |& tee -a terminal.out
 echo "-------------Bitonic_MPI is done------------------"
 echo

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdlib.h>
+#include <omp.h>
 using namespace std;
 
 
@@ -15,7 +16,9 @@ int main(int argc, char* argv[])
     int* data = (int*) malloc(sample_size * sizeof(int));;
     generate_data(data, 0, sample_size);
 
+    double start_time = omp_get_wtime();
     quickSort(data, 0, sample_size - 1);
+    printf("\nSequential (Quicksort) Sort Time: %f\n\n", omp_get_wtime() - start_time);
 
     return 0;
 }
@@ -45,10 +48,10 @@ int partition(int* array, int left, int right)
     int index = left - 1;
 
     for (int i = left; i <= right; i++){
-        if (array[i] >= pivot) continue;
-
-        index++;
-        swap(array[index], array[i]);
+        if (array[i] < pivot){
+            index++;
+            swap(array[index], array[i]);
+        }
     }
 
     swap(array[index + 1], array[right]);

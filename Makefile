@@ -13,7 +13,7 @@ INCFLAG = -I ""
 all: $(P1) $(P2) $(P3)
 
 $(P1): $(P1).cpp
-	$(CPP) $(CFLAGS) $(INCFLAG) ./$(P1).cpp -o $(P1)
+	$(CPP) $(CFLAGS) $(OMPFLAG) $(INCFLAG) ./$(P1).cpp -o $(P1)
 
 $(P2): $(P2).cpp
 	$(CPP) $(CFLAGS) $(OMPFLAG) $(INCFLAG) ./$(P2).cpp -o $(P2)

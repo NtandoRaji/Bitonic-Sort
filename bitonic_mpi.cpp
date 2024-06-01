@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
         }
 
         printf("\nSort Valid?: %s\n", is_valid ? "True" : "False");
-        printf("Sequential Sort Time: %f\n", seq_end_time - seq_start_time);
+        printf("Sequential (Quicksort) Sort Time: %f\n", seq_end_time - seq_start_time);
         printf("MPI Implementation - Parallel Bitonic Sort Time using %d processers: %f\n", n_processes, mpi_end_time - mpi_start_time);
         printf("Speedup: %f\n\n", (seq_end_time - seq_start_time) / (mpi_end_time - mpi_start_time));
     }
