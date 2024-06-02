@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
 
     double start_time = omp_get_wtime();
     quick_sort(data, 0, sample_size - 1);
-    printf("\nSequential (Quicksort) Sort Time: %f\n\n", omp_get_wtime() - start_time);
+    printf("\nSequential (Quicksort) Sort Time: %f seconds\n\n", omp_get_wtime() - start_time);
 
     return 0;
 }

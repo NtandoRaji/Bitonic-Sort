@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
 
         bool is_valid = is_valid_sort(output, global_size);
 
-        printf("\nMPI Implementation - Parallel Bitonic Sort Time using %d processers: %f\n", n_processes, end_time - start_time);
+        printf("\nMPI Implementation - Parallel Bitonic Sort Time using %d processers: %f seconds\n", n_processes, end_time - start_time);
 
         printf("\nSort Valid?: %s\n", is_valid ? "True" : "False");
     }
