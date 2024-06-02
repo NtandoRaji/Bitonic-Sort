@@ -28,7 +28,7 @@ void generate_data(int* array, int start, int sample_size)
 {   
     srand(42);
     for(int i = start; i < start + sample_size; i++){
-        array[i] = rand() % sample_size;
+        array[i] = rand() % 40001;
     }
 }
 

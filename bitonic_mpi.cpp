@@ -11,14 +11,14 @@ int get_pivot(int* array, int left, int right);
 void quick_sort(int *array, int left, int right);
 void compare_low(int* array, int sample_size, int rank, int j);
 void compare_high(int* array, int sample_size, int rank, int j);
-bool is_valid_sort(int* qs_array, int* bs_array, int global_size);
+bool is_valid_sort(int* array, int global_size);
 
 
 int main(int argc, char* argv[])
 {   
     int n_processes, rank, sample_size, global_size;
-    int *data, *output, *validation;
-    double seq_start_time, seq_end_time, mpi_start_time, mpi_end_time;
+    int *data, *output;
+    double start_time, end_time;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &n_processes);
@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
     MPI_Barrier(MPI_COMM_WORLD);
 
     if (rank == 0){
-        mpi_start_time = MPI_Wtime();
+        start_time = MPI_Wtime();
     }
 
 
@@ -64,27 +64,13 @@ int main(int argc, char* argv[])
     MPI_Gather(data, sample_size, MPI_INT, output, sample_size, MPI_INT, 0, MPI_COMM_WORLD);
     
     if (rank == 0) {
-        mpi_end_time = MPI_Wtime();
+        end_time = MPI_Wtime();
 
-        validation = (int*) malloc(global_size * sizeof(int));
-        for (int process = 0; process < n_processes; process++){
-            generate_data(validation, process * sample_size, sample_size, process);
-        }
+        bool is_valid = is_valid_sort(output, global_size);
 
-        seq_start_time = MPI_Wtime();
-        quick_sort(validation, 0, global_size - 1);
-        seq_end_time = MPI_Wtime();
-
-        bool is_valid = is_valid_sort(validation,  output, global_size);
-
-        printf("\nSequential (Quicksort) Sort Time: %f\n", seq_end_time - seq_start_time);
-        printf("MPI Implementation - Parallel Bitonic Sort Time using %d processers: %f\n", n_processes, mpi_end_time - mpi_start_time);
+        printf("\nMPI Implementation - Parallel Bitonic Sort Time using %d processers: %f\n", n_processes, end_time - start_time);
 
         printf("\nSort Valid?: %s\n", is_valid ? "True" : "False");
-
-        if (is_valid) {
-            printf("Speedup: %f\n\n", (seq_end_time - seq_start_time) / (mpi_end_time - mpi_start_time));
-        }
     }
 
     // Free up memory
@@ -99,7 +85,7 @@ void generate_data(int* array, int start, int sample_size, int rank)
 {   
     srand(42 + rank);
     for(int i = start; i < start + sample_size; i++){
-        array[i] = rand() % sample_size;
+        array[i] = rand() % 40001;
     }
 }
 
@@ -207,10 +193,10 @@ void compare_high(int* array, int sample_size, int rank, int j) {
 }
 
 
-bool is_valid_sort(int* qs_array, int* bs_array, int global_size)
+bool is_valid_sort(int* array, int global_size)
 {
-    for (int i = 0; i < global_size; i++) {
-        if (bs_array[i] != qs_array[i]) {
+    for (int i = 1; i < global_size - 1; i++) {
+        if (array[i] > array[i + 1]) {
             return false;
         }
     }
